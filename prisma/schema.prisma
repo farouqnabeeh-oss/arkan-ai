@@ -1,0 +1,80 @@
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model User {
+  id        String   @id @default(uuid())
+  username  String   @unique
+  password  String   // stored hash
+  role      String   @default("admin")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Conversation {
+  id           String    @id @default(uuid())
+  externalId   String    // WhatsApp phone number or Instagram username
+  platform     String    // "WHATSAPP" or "INSTAGRAM"
+  status       String    @default("ACTIVE") // "ACTIVE" or "PAUSED"
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+  messages     Message[]
+
+  @@unique([externalId, platform])
+}
+
+model Message {
+  id             String       @id @default(uuid())
+  conversationId String
+  conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  sender         String       // "USER" | "AI" | "SYSTEM"
+  content        String
+  timestamp      DateTime     @default(now())
+  messageId      String?      // external API message ID
+  status         String       @default("SENT") // "SENT" | "DELIVERED" | "READ" | "FAILED"
+  metadata       String?      // Raw payload JSON for tracing
+}
+
+model KnowledgeBase {
+  id                 String   @id @default(uuid())
+  companyName        String   @default("ARKAN DIGITAL")
+  description        String   // Core business description
+  services           String   // Services description
+  pricing            String   // Pricing details
+  faqs               String   // FAQ items
+  offers             String   // Offers and deals
+  policies           String   // Terms and return policies
+  toneOfVoice        String   @default("professional and friendly")
+  updatedAt          DateTime @updatedAt
+}
+
+model Settings {
+  id            String   @id @default(uuid())
+  systemEnabled Boolean  @default(true) // Switch to toggle AI automation
+  updatedAt     DateTime @updatedAt
+}
+
+model IntegrationConfig {
+  id                 String   @id @default(uuid())
+  platform           String   @unique // "WHATSAPP" | "INSTAGRAM"
+  whatsappPhoneId    String?  // Phone Number ID
+  whatsappToken      String?  // Cloud API Token
+  whatsappVerifyToken String? // Verification Token
+  instagramPageId    String?  // IG-connected FB Page ID
+  instagramToken     String?  // Page Access Token
+  instagramVerifyToken String? // Instagram verification token
+  updatedAt          DateTime @updatedAt
+}
+
+model Log {
+  id        String   @id @default(uuid())
+  timestamp DateTime @default(now())
+  type      String   // "INFO" | "ERROR" | "WEBHOOK" | "AI_LATENCY"
+  message   String
+  details   String?  // JSON string
+}
